@@ -1,7 +1,7 @@
 import os
 from fastapi import UploadFile
 from app.schemas.clothing_item import ClothingItemSchema
-# from app.database import clothing_collection  # MongoDB collection
+from app.database import clothing_collection  # MongoDB collection
 
 async def save_clothing_item(file: UploadFile, size: str):
     filename = file.filename
