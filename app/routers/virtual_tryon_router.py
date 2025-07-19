@@ -4,7 +4,7 @@ from app.services.virtual_tryon_service import (
     process_virtual_tryon,
     get_look_completion
 )
-from app.schemas.tryon_response import TryOnResponse
+from app.schemas.tryon_schemas import TryOnResponse
 from app.schemas.complete_look_response import CompleteLookResponse
 
 router = APIRouter()
