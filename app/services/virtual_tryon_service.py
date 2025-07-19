@@ -1,4 +1,3 @@
-
 from app.schemas.complete_look_response import CompleteLookResponse
 from app.schemas.tryon_response import TryOnResponse
 from dressing_in_order.models.dior_model import DIORModel
@@ -9,24 +8,31 @@ from PIL import Image
 import torchvision.transforms as transforms
 import os
 
+# If you have a pose processing function, import it properly
+# Example:
+# from dressing_in_order.utils.pose_utils import process_pose
+
 class VirtualTryOnService:
     def __init__(self):
-        # Initialize DiorModel (adjust based on dressing_in_order/models/dior_model.py)
         self.checkpoint_path = "D:/final_project/dressing_in_order/checkpoints/dior_model.pth"
-        self.model = DIORModel()  # May require additional parameters
+        self.model = DIORModel()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
         if os.path.exists(self.checkpoint_path):
             self.model.load_state_dict(torch.load(self.checkpoint_path, map_location=self.device))
+        else:
+            raise FileNotFoundError(f"Checkpoint not found at {self.checkpoint_path}")
+
         self.model.to(self.device)
         self.model.eval()
-        # Define image transform
+
         self.transform = transforms.Compose([
             transforms.Resize((256, 256)),
             transforms.ToTensor(),
         ])
 
     def process_image(self, image_path: str) -> torch.Tensor:
-        """Helper method to process images."""
+        """Load and transform image into tensor."""
         if not os.path.exists(image_path):
             raise FileNotFoundError(f"Image not found: {image_path}")
         image = Image.open(image_path).convert("RGB")
@@ -34,42 +40,53 @@ class VirtualTryOnService:
 
     async def generate_complete_look(self, clothing_items: list[ClothingItem]) -> CompleteLookResponse:
         try:
-            # Placeholder: Implement logic to combine clothing items into a complete look
+            # Load and process all clothing item images
             clothing_tensors = [self.process_image(item.image_url) for item in clothing_items]
+
+            # Forward through model
             with torch.no_grad():
-                output = self.model(clothing_tensors)  # Adjust based on DiorModel
-            output_image = "D:/final_project/output/complete_look.jpg"
-            os.makedirs(os.path.dirname(output_image), exist_ok=True)
-            transforms.ToPILImage()(output.squeeze(0).cpu()).save(output_image)
+                output = self.model(clothing_tensors)  # Adjust this if model expects differently
+
+            output_image_path = "D:/final_project/output/complete_look.jpg"
+            os.makedirs(os.path.dirname(output_image_path), exist_ok=True)
+            transforms.ToPILImage()(output.squeeze(0).cpu()).save(output_image_path)
+
             return CompleteLookResponse(
-                image_url=output_image,
+                image_url=output_image_path,
                 description="Generated complete look from provided clothing items"
             )
         except Exception as e:
-            raise Exception(f"Error generating complete look: {str(e)}")
+            raise Exception(f"[Generate Complete Look Error] {str(e)}")
 
-    async def virtual_tryon(self, clothing_item: ClothingItem, user_image: str) -> TryOnResponse:
+    async def virtual_tryon(self, clothing_item: ClothingItem, user_image_path: str) -> TryOnResponse:
         try:
-            # Process user image and clothing item
-            user_img_tensor = self.process_image(user_image)
-            clothing_img_tensor = self.process_image(clothing_item.image_url)
-            processed_pose = process_pose(user_image)  # Use pose_utils
+            user_tensor = self.process_image(user_image_path)
+            clothing_tensor = self.process_image(clothing_item.image_url)
+
+            # Placeholder for pose processing
+            # Replace with actual call to pose estimation if needed
+            processed_pose = None
+            # processed_pose = process_pose(user_image_path)
+
+            # Forward through model
             with torch.no_grad():
-                output = self.model(user_img_tensor, clothing_img_tensor, processed_pose)
-            output_image = "D:/final_project/output/tryon_image.jpg"
-            os.makedirs(os.path.dirname(output_image), exist_ok=True)
-            transforms.ToPILImage()(output.squeeze(0).cpu()).save(output_image)
+                output = self.model(user_tensor, clothing_tensor, processed_pose)
+
+            output_image_path = "D:/final_project/output/tryon_image.jpg"
+            os.makedirs(os.path.dirname(output_image_path), exist_ok=True)
+            transforms.ToPILImage()(output.squeeze(0).cpu()).save(output_image_path)
+
             return TryOnResponse(
-                tryon_image_url=output_image,
+                tryon_image_url=output_image_path,
                 message="Virtual try-on completed successfully"
             )
         except Exception as e:
-            raise Exception(f"Error performing virtual try-on: {str(e)}")
+            raise Exception(f"[Virtual Try-On Error] {str(e)}")
 
 # Instantiate service
 virtual_tryon_service = VirtualTryOnService()
 
-# Export functions for router
+# Exportable async wrappers
 async def generate_complete_look(clothing_items: list[ClothingItem]) -> CompleteLookResponse:
     return await virtual_tryon_service.generate_complete_look(clothing_items)
 
