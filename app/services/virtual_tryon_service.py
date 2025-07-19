@@ -2,20 +2,74 @@
 import uuid
 from fastapi import UploadFile
 import os
+import cloudinary.uploader
+from app.db import tryon_collection
 
-# Dummy function to simulate actual try-on
+
 async def upload_and_generate_tryon(user_image: UploadFile, clothing_image: UploadFile):
-    user_filename = f"temp/{uuid.uuid4()}_user.jpg"
-    cloth_filename = f"temp/{uuid.uuid4()}_cloth.jpg"
+    # Upload user image to Cloudinary
+    user_upload_result = cloudinary.uploader.upload(
+        await user_image.read(),
+        folder="tryon/user_images",
+        public_id=f"{uuid.uuid4()}_user"
+    )
 
-    with open(user_filename, "wb") as uf:
-        uf.write(await user_image.read())
-    with open(cloth_filename, "wb") as cf:
-        cf.write(await clothing_image.read())
+    # Upload clothing image to Cloudinary
+    clothing_upload_result = cloudinary.uploader.upload(
+        await clothing_image.read(),
+        folder="tryon/clothing_images",
+        public_id=f"{uuid.uuid4()}_cloth"
+    )
 
-    # Simulate output
-    output_path = "output/fake_tryon_result.jpg"
-    return {"tryon_image_url": output_path}
+    # Simulate output try-on result (in real case, you might pass these to AI model)
+    tryon_result_url = generate_virtual_tryon_image(user_upload_result["secure_url"], clothing_upload_result["secure_url"])
+
+
+    # Save to MongoDB
+    await tryon_collection.insert_one({
+        "user_image_url": user_upload_result["secure_url"],
+        "clothing_image_url": clothing_upload_result["secure_url"],
+        "tryon_image_url": tryon_result_url
+    })
+
+    return {
+        "user_image_url": user_upload_result["secure_url"],
+        "clothing_image_url": clothing_upload_result["secure_url"],
+        "tryon_image_url": tryon_result_url
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 async def process_virtual_tryon(user_image_url: str, clothing_image_url: str):
     # In real life, you'd download from URLs and feed to the model
