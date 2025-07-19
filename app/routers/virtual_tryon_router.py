@@ -17,6 +17,6 @@ async def upload_tryon(user_image: UploadFile = File(...), clothing_image: Uploa
 async def generate_virtual_tryon(user_image_url: str, clothing_image_url: str):
     return await process_virtual_tryon(user_image_url, clothing_image_url)
 
-@router.post("/complete-the-look", response_model=CompleteLookResponse)
+@router.post("/generate_complete_look", response_model=CompleteLookResponse)
 async def get_recommendation(clothing_id: str):
     return await get_look_completion(clothing_id)
