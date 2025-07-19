@@ -13,3 +13,4 @@ class ClothingItemSchema(BaseModel):
     name: str
     image_url: str
     size: SizeEnum
+    color: str
